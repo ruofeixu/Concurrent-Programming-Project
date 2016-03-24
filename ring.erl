@@ -3,9 +3,12 @@
 
 %generate all the test casese
 test() ->
-  InputList = [1000,2000,4000,8000],
-  PairList = pairs(InputList),
-  InputArgs = append_pair([1,2], PairList),
+  ProcessorList = [1000,2000,4000,8000],
+  MessageList = [0,1000,2000,4000,8000],
+  FunctionID = [1,2],
+  PairList = pairs(ProcessorList,MessageList),
+  InputArgs = pairs(FunctionID,PairList),
+  %InputArgs = append_pair(FunctionID, PairList),
   loop_lists(InputArgs).
 
 %loop all the test cases
@@ -14,16 +17,18 @@ loop_lists([H|T]) ->
         T/=[] ->
             timer(H),
             loop_lists(T);
-        true -> unknown
+        H/=[] ->
+            timer(H);
+        true -> stop
     end.
 
 %creat a pairs list from two lists
-pairs(L) -> [[X,Y] || X <- L, Y <- L, X=/=Y].
+pairs(L1,L2) -> [[X,Y] || X <- L1, Y <- L2].
 
 % add
 append_pair(L1,L2) -> [[X]++[Y] || X <- L1, Y <- L2].
 
-%timer for each ring function
+%timer for calculating time period of each test case
 timer([F,[NumP,NumM]]) ->
   statistics(runtime),
   statistics(wall_clock),
@@ -42,30 +47,36 @@ timer([F,[NumP,NumM]]) ->
     io:format("~p with ~p processors and ~p messages took ~p cpu milliseconds and ~p wall­clock milliseconds~n", ["ring2",NumP,NumM,Time1, Time2])
   end.
 
-% 1) the first node can send a
-% message and wait for it to arrive before sending the next message
-ring1(Processes, Msgs) ->
+% 1) the first node can send a % message and wait for it to arrive before sending the next message
+ring1(Processes, NumMsgs) ->
   Header = spawn(ring,batch_init, [Processes,self()]),
   %io:format("Frist message ~p sends to ~p~n", [self(),Header]),
-  ring1_send_loop(Header, self(),lists:seq(1,Msgs)),
+  ring1_send_loop(Header, self(),lists:seq(1,NumMsgs)),
   receive
     done->
       %io:format("All message arrived~n")
       true
   end.
 
-ring1_send_loop(Head, Main, [H|T])->
+%send
+ring1_send_loop(Head, Main, L)->
   if
-    H /= [] ->
-    Head ! {H,0},
-    receive
-      done->
-        if
-          T /= [] ->
-          ring1_send_loop(Head,Main,T);
-          true ->Main ! done
-        end
-    end
+    L == [] ->
+      Main ! done;
+    true ->
+      [H|T]=L,
+      if
+        H /= [] ->
+        Head ! {H,0},
+          receive
+          done->
+            if
+              T /= [] ->
+              ring1_send_loop(Head,Main,T);
+              true ->Main ! done
+            end
+          end
+      end
   end.
 
 % 2) the first node can send 
