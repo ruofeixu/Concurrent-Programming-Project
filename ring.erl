@@ -25,9 +25,6 @@ loop_lists([H|T]) ->
 %creat a pairs list from two lists
 pairs(L1,L2) -> [[X,Y] || X <- L1, Y <- L2].
 
-% add
-append_pair(L1,L2) -> [[X]++[Y] || X <- L1, Y <- L2].
-
 %timer for calculating time period of each test case
 timer([F,[NumP,NumM]]) ->
   statistics(runtime),
