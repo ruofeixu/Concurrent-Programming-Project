@@ -6,7 +6,6 @@
 -module(simulation).
 -export([newScenario/2]).
 
-
 % To start the whole simulation, call simulation:newScenario().
 % Note: if you call it a second time it will fail. But you can call
 % it yet again and it will succeed. You don't have to restart erl for

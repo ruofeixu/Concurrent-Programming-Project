@@ -15,7 +15,7 @@ serve(Update, InitState) ->
     receive
 	M -> 
 	    % Uncomment the following line to see the messages received by agents
-	    % io:format("~p received ~p~n", [self(), M]),
+	    %io:format("~p: ~p received ~p~n", [Update,self(), M]),
 	    serve(Update, Update(M, InitState))
     end.
 	    

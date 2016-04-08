@@ -3,15 +3,25 @@
 
 % Code for the lift agents. Things to think about:
 % Challenge: does the process always have sufficient information
-% e.g. about the floor agents so it can send the messages it needs to send.
+% e.g. about the floor agents so it can send the messages it needs to send.?
 liftProcess({request, FloorNum, FloorAgent, Direction}, {Now, Stoplist}) ->
-    NewStoplist = Stoplist, % you have to compute this right
-    {Now, NewStoplist}
+    %NewStoplist = Stoplist, % you have to compute this right
+    io:format("Floor: ~p, Sloplist:~p~n", [FloorNum,Stoplist]),
+    Time = waitTime:waitTime(Stoplist,Now,Direction,FloorNum),
+    FloorAgent ! {propose,Time},
+    receive
+        accept ->
+            NewStoplist = insert:insert(Stoplist,Now,Direction,FloorNum),
+            {Now, NewStoplist};
+        reject -> {Now, Stoplist};
+        true -> error
+    end
 ;
 % stop messages are received from the buttons inside the lift
 % for our simulation they will be sent directly from the command line to the lift process
 liftProcess({stop, FloorNum}, {Now, Stoplist}) ->
-    NewStoplist = Stoplist, % you have to compute this right
+    %NewStoplist = Stoplist, % you have to compute this right
+    NewStoplist = stopAt:stopAt(Stoplist,Now,FloorNum), % you have to compute this right
     {Now, NewStoplist}
 ;
 % arrived messages come from the Cabin agent that runs the lift cabin up and 
@@ -27,13 +37,28 @@ liftProcess({Cabin, arrived, FloorNum}, {Now, Stoplist}) ->
     % generic agent code that is calling this is perfectly happy to manage whatever
     % kind of state you specify provided you use it consistently -- i.e. pass it as the
     % initial state and return it from each possible action of this function.
-    case {FloorNum, Stoplist} of
-	{FloorNum, stopUp} -> Cabin ! {self(), stop}, {FloorNum, up};
-	{FloorNum, stopDown} -> Cabin ! {self(), stop}, {FloorNum, down};
-	{FloorNum, up} when FloorNum < 5 -> Cabin ! {self(), up}, {FloorNum, stopUp};
-	{FloorNum, _} when FloorNum == 5 -> Cabin ! {self(), down}, {FloorNum, stopDown};
-	{FloorNum, down} when FloorNum > 1 -> Cabin ! {self(), down}, {FloorNum, stopDown};
-	{FloorNum, _} when FloorNum == 1 -> Cabin ! {self(), up}, {FloorNum, stopUp}
+    %case {FloorNum, Stoplist} of
+   	%{FloorNum, stopUp} -> Cabin ! {self(), stop}, {FloorNum, up};
+	%{FloorNum, stopDown} -> Cabin ! {self(), stop}, {FloorNum, down};
+	%{FloorNum, up} when FloorNum < 5 -> Cabin ! {self(), up}, {FloorNum, stopUp};
+	%{FloorNum, _} when FloorNum == 5 -> Cabin ! {self(), down}, {FloorNum, stopDown};
+	%{FloorNum, down} when FloorNum > 1 -> Cabin ! {self(), down}, {FloorNum, stopDown};
+	%{FloorNum, _} when FloorNum == 1 -> Cabin ! {self(), up}, {FloorNum, stopUp}
+    %end
+    % when wait?
+    if
+        Stoplist == [] ->
+        Cabin ! {self(),wait}, {Now,[]};
+        true ->
+            [H|T] = Stoplist,
+            if
+                H > FloorNum->
+                Cabin ! {self(),up}, {Now+1, Stoplist};
+                H < FloorNum->
+                Cabin ! {self(),down}, {Now-1, Stoplist};
+                true->
+                Cabin ! {self(),stop}, {Now, T}
+            end
     end
 .
 
