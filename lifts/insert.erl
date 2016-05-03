@@ -13,7 +13,9 @@ insertHelper(Stoplist, Now, Dir, Floor,Index) ->
     if
         Flag ->
             [Stoplist,Index];
-        Now == Floor ->
+        (Now == Floor) and (Stoplist == []) -> %just stop for 5 unit when already on that floor
+            [[Floor],Index];
+        (Now == Floor) ->
             [Stoplist,Index];
         true ->
             insertAProperPostion([],Stoplist,Now,Dir,Floor,unkown,Index)
@@ -53,7 +55,6 @@ insertAProperPostion([],L2, Now, Dir, Floor,_,Index) ->
              insertAProperPostion([H2],T2,Now,Dir,Floor,unkown,Index+1)
     end;
 insertAProperPostion(L1,L2, Now, Dir, Floor,Trend,Index) ->
-	io:format("L1:~p, L2: ~p, Floor:~p~n", [L1,L2,Floor]),
     L1_last = lists:last(L1),
     [H2|T2] = L2,
     Flag =insertHelper2(Dir,Now,Floor,H2,L1_last),
@@ -73,9 +74,9 @@ insertAProperPostion(L1,L2, Now, Dir, Floor,Trend,Index) ->
 %help differnt direction insert find right direction when current index between two floor
 insertHelper2(any,Now,Floor,H2,_) ->
     ((Now > Floor) and (Floor > H2)) or ((Now < Floor) and (Floor < H2));
-insertHelper2(up,Now,Floor,H2,L1_last) ->
+insertHelper2(up,_,Floor,H2,L1_last) ->
     (L1_last < Floor) and (Floor < H2);
-insertHelper2(down,Now,Floor,H2,L1_last) ->
+insertHelper2(down,_,Floor,H2,L1_last) ->
     (L1_last > Floor) and (Floor > H2).
 
 %help differnt direction insert find correct postion before the first elment on the list
@@ -84,4 +85,4 @@ insertHelper3(any,Now,Floor,H2) ->
 insertHelper3(up,Now,Floor,H2) ->
     (Now < Floor) and (Floor < H2);
 insertHelper3(down,Now,Floor,H2) ->
-    insertHelper3(any,Now,Floor,H2).
+    (Now > Floor) and (Floor > H2).

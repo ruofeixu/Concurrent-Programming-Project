@@ -6,7 +6,6 @@
 % e.g. about the floor agents so it can send the messages it needs to send.?
 liftProcess({request, FloorNum, FloorAgent, Direction}, {Now, Stoplist}) ->
     %NewStoplist = Stoplist, % you have to compute this right
-    io:format("Floor: ~p, Sloplist:~p~n", [FloorNum,Stoplist]),
     Time = waitTime:waitTime(Stoplist,Now,Direction,FloorNum),
     FloorAgent ! {propose,Time},
     receive
