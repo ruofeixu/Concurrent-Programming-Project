@@ -1,21 +1,26 @@
-//import java.util.concurrent.SynchronousQueue;
+//cpts 483
+//ruofei xu
+//11237005
+//synchrounous message passing kernel
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.*;
 import java.util.concurrent.*;
 
+
+//essential class for this project
+//sender and receiver communicate through a channel
+
 public class Channel {
-    //private final SynchronousQueue<ChannelObject> sendQueue;
-    //private final SynchronousQueue<ChannelObject> receiveQueue;
+
     private  final ConcurrentLinkedQueue<ChannelObject> sendQueue;
     private  final ConcurrentLinkedQueue<ChannelObject> receiveQueue;
     private final ReentrantLock lock;
+
     public Channel()
     {
         lock = new ReentrantLock();
-        //sendQueue = new SynchronousQueue<ChannelObject>();
-        //receiveQueue = new SynchronousQueue<ChannelObject>();
         sendQueue = new ConcurrentLinkedQueue<ChannelObject>();
         receiveQueue = new ConcurrentLinkedQueue<ChannelObject>();
     }
@@ -23,8 +28,6 @@ public class Channel {
     public Channel(ReentrantLock lock)
     {
         this.lock = lock;
-        //sendQueue = new SynchronousQueue<ChannelObject>();
-        //receiveQueue = new SynchronousQueue<ChannelObject>();
         sendQueue = new ConcurrentLinkedQueue<ChannelObject>();
         receiveQueue = new ConcurrentLinkedQueue<ChannelObject>();
     }
@@ -34,21 +37,22 @@ public class Channel {
         return lock;
     }
 
+    //Send an object to receiver if no receiver on the receive Queue put the object to send Queue
     public Object Send(Object o) throws InterruptedException
     {
+        ChannelObject co = null;
         lock.lock();
         try {
             if(receiveQueue.isEmpty()){
-                ChannelObject co = new ChannelObject(lock.newCondition());
+                co = new ChannelObject(lock.newCondition());
                 co.o = o;
-                sendQueue.add(co);
-                co.waitCom();
+                sendQueue.add(co); //add the object to the sendqueue
+                co.waitCom(); //wait until a receiver signal it
             }
             else {
-                ChannelObject co = receiveQueue.poll();
+                co = receiveQueue.poll();
                 co.o = o;
-                sendQueue.add(co);
-                co.getCondition().signal();
+                co.getCondition().signal(); //signal the receiver polling from receivequeue
             }
             return o;
         }finally {
@@ -59,78 +63,73 @@ public class Channel {
     public Object Recv() throws InterruptedException
     {
         Object o = null;
+        ChannelObject co = null;
         lock.lock();
         try {
-            if(sendQueue.isEmpty()){
-                ChannelObject co = new ChannelObject(lock.newCondition());
-                receiveQueue.add(co);
-                co.waitCom();
+            if (sendQueue.isEmpty()){
+                co = new ChannelObject(lock.newCondition());
+                receiveQueue.add(co); //add a Channel object to receive queue
+                co.waitCom(); // wait sender send an object to the channel object and signal it
+                o = co.o; //get an object from sender
             }
-            ChannelObject co = sendQueue.poll();
-            o = co.o;
-            co.getCondition().signal();
+            else {
+                co = sendQueue.poll();
+                o = co.o;
+                co.getCondition().signal();
+            }
             return o;
         }finally {
             lock.unlock();
         }
     }
 
-    public Object eventSend(Object o) throws InterruptedException
+    //this method for event syc and selection list select
+    public ChannelObject eventSend(Object o) throws InterruptedException
     {
-        lock.lock();
-        try{
-            if(receiveQueue.isEmpty())
-                return null;
-            return Send(o);
-        }finally {
-            lock.unlock();
-        }
+        ChannelObject co;
+        if(receiveQueue.isEmpty())
+            return null;
+        co = receiveQueue.peek();
+        if(!lock.hasWaiters(co.getCondition())) //if no one wait for signal then stop polling that avoid double polling
+            return null;
+        co = receiveQueue.poll(); //poll channel object from queue
+        co.o = o; //assign object to the channel object
+        co.getCondition().signal();
+        return co;
     }
 
-    public Object eventRecv() throws InterruptedException
+    //this method for event syc and selection list select
+    public ChannelObject eventRecv() throws InterruptedException
     {
-        lock.lock();
-        try{
-            if(sendQueue.isEmpty())
-                return null;
-            return Recv();
-        }finally {
-            lock.unlock();
-        }
+        ChannelObject co;
+        Object o;
+        if(sendQueue.isEmpty())
+            return null;
+        co = sendQueue.peek();
+        if(!lock.hasWaiters(co.getCondition())) //if no one wait for signal then stop polling that avoid double polling
+            return null;
+        co = sendQueue.poll();
+        o = co.o; //get object from channel object
+        co.getCondition().signal();
+        return co;
     }
 
-    public ChannelObject enqueueSendQueue(Object o) throws InterruptedException
+    public  ChannelObject enqueueSendQueue(ChannelObject co) throws InterruptedException
     {
-        lock.lock();
-        try{
-            ChannelObject co = new ChannelObject();
-            sendQueue.add(co);
-            return co;
-        }finally {
-            lock.unlock();
-        }
+        sendQueue.add(co);
+        return co;
     }
 
-    public ChannelObject enqueueRecvQueue() throws InterruptedException
+    public ChannelObject enqueueRecvQueue(ChannelObject co) throws InterruptedException
     {
-        lock.lock();
-        try {
-            ChannelObject co = new ChannelObject();
-            receiveQueue.add(co);
-            return co;
-        }finally {
-            lock.unlock();
-        }
+        receiveQueue.add(co);
+        return co;
     }
 
-    public void removeObject(ChannelObject co)
+    public boolean removeObject(ChannelObject co)
     {
-        lock.lock();
-        try {
-            sendQueue.remove(co);
-            receiveQueue.remove(co);
-        }finally {
-            lock.unlock();
-        }
+        boolean r1 = sendQueue.remove(co);
+        boolean r2 = receiveQueue.remove(co);
+        return r1 || r2;
     }
 }

@@ -1,11 +1,16 @@
+//cpts 483
+//ruofei xu
+//11237005
+//synchrounous message passing kernel
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
+//this class is a container for channel communication
 public class ChannelObject
 {
-    public Object o;
-    public Condition c;
+    public volatile Object o; //transfer object
+    public volatile Condition c; //lock condition for await and signal
 
     public ChannelObject()
     {
@@ -24,8 +29,13 @@ public class ChannelObject
         return c;
     }
 
+    public void wakeUp()
+    {
+        c.signal();
+    }
+
     public void waitCom() throws InterruptedException
     {
-        c.await();
+            c.await();
     }
 }

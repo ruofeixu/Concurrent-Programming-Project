@@ -1,1 +1,1 @@
-javac ChannelObject.java Channel.java CommEvent.java SendEvent.java RecvEvent.java SelectionList.java Stage1Demo.java Stage2Demo.java Stage3Demo.java
+javac ChannelObject.java Channel.java CommEvent.java SendEvent.java RecvEvent.java SelectionList.java Stage1Demo.java Stage2Demo.java Stage3Demo.java Debugger.java Tuple.java
